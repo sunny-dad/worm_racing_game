@@ -1,13 +1,1095 @@
-<!-- index.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <title>Worm Racing Game</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>지렁이 레이싱</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #87CEEB, #98FB98);
+            height: 100vh;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 30vh; /* 화면 높이의 30%로 축소 */
+            overflow: hidden;
+            border: 2px solid #333;
+            margin: 20px auto;
+        }
+
+        .game-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            background: linear-gradient(to bottom, #87CEEB 0%, #90EE90 50%, #8B4513 100%);
+        }
+
+        .ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .game-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            pointer-events: all;
+        }
+
+        .countdown {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #FF4444;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 30;
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            right: 20px;
+            height: 20px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            border: 2px solid #333;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #FF6B6B, #4ECDC4);
+            border-radius: 8px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+
+        .finish-line {
+            position: absolute;
+            right: 20px;
+            top: 60px;
+            width: 4px;
+            height: 60px;
+            background: repeating-linear-gradient(
+                0deg,
+                #000 0px,
+                #000 10px,
+                #fff 10px,
+                #fff 20px
+            );
+        }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            z-index: 30;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .message.win {
+            color: #00ff00;
+        }
+
+        .message.fail {
+            color: #ff0000;
+        }
+
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            z-index: 1000;
+        }
+
+        .start-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #FFD700;
+        }
+
+        .start-screen p {
+            font-size: 18px;
+            margin-bottom: 10px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .start-button {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+
+        .start-button:hover {
+            background: #45a049;
+        }
+
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .scoreboard {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(255,255,255,0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            min-width: 400px;
+            z-index: 1000;
+            display: none;
+        }
+
+        .scoreboard h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 32px;
+        }
+
+        .game-button {
+            padding: 12px 24px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 0 10px;
+            transition: all 0.3s;
+        }
+
+        .next-button {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .next-button:hover {
+            background: #45a049;
+        }
+
+        .exit-button {
+            background: #f44336;
+            color: white;
+        }
+
+        .exit-button:hover {
+            background: #da190b;
+        }
+
+        @media (max-width: 768px) {
+            .game-info {
+                font-size: 14px;
+                padding: 10px;
+            }
+
+            .countdown {
+                font-size: 36px;
+            }
+
+            .message {
+                font-size: 36px;
+            }
+
+            .start-screen h1 {
+                font-size: 36px;
+            }
+
+            .scoreboard {
+                min-width: 90%;
+                padding: 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-  <h1>Worm Racing Game</h1>
-  <p>게임을 여기에 연결할 수 있습니다.</p>
-  <a href="worm_race.html">게임 시작하기</a>
+    <div class="game-container">
+        <canvas class="game-canvas" id="gameCanvas"></canvas>
+        
+        <div class="ui-overlay">
+            <div class="game-info">
+                <div>Stage: <span id="stageDisplay">1</span></div>
+                <div>Distance: <span id="distanceDisplay">0</span>m / 100m</div>
+                <div>Clicks: <span id="clickDisplay">0</span></div>
+                <div>Chicken Delay: <span id="delayDisplay">10</span>s</div>
+            </div>
+            
+            <div class="countdown" id="countdown"></div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="finish-line"></div>
+            
+            <div class="message" id="message"></div>
+        </div>
+
+        <div class="scoreboard" id="scoreboard">
+            <h2 id="scoreTitle">STAGE COMPLETE!</h2>
+            <div class="score-display">
+                <p>Stage <span id="finalStage">1</span> 완료!</p>
+                <p>다음 스테이지에서는 닭이 <span id="nextDelay">9</span>초 후에 출발합니다.</p>
+            </div>
+            <div class="button-container">
+                <button class="game-button exit-button" onclick="exitGame()">EXIT</button>
+                <button class="game-button next-button" onclick="nextStage()">NEXT STAGE</button>
+            </div>
+        </div>
+
+        <div class="start-screen" id="startScreen">
+            <h1>🐛 지렁이 레이싱 🐔</h1>
+            <div class="instructions">
+                <p><strong>게임 규칙:</strong></p>
+                <p>• 지렁이를 100미터 결승선까지 이동시키세요!</p>
+                <p>• 지렁이가 움츠러들 때만 클릭하거나 스페이스바를 누르면 전진합니다</p>
+                <p>• 노란 원이 보일 때 클릭/스페이스바 가능!</p>
+                <p>• 가장 움츠러든 상태(진한 초록)에서 클릭하면 방귀로 닭을 공격!</p>
+                <p>• 닭이 지렁이를 잡으면 게임 오버</p>
+                <p>• 스테이지가 올라갈수록 닭이 더 빨리 출발합니다</p>
+            </div>
+            <button class="start-button" onclick="startGame()">게임 시작</button>
+        </div>
+    </div>
+
+    <script>
+        class WormRacingGame {
+            constructor() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                
+                this.setupCanvas();
+                this.initializeGame();
+                this.setupEventListeners();
+            }
+
+            setupCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight * 0.3; // 화면 높이의 30%
+                // 20cm로 축소된 레이스 거리 반영
+                this.racePixelWidth = this.canvas.width * 0.6; // 화면 너비의 60%만 사용
+            }
+
+            initializeGame() {
+                // 기존 스테이지 유지 (처음 시작할 때만 1로 설정)
+                if (this.stage === undefined) {
+                    this.stage = 1;
+                }
+                
+                this.gameStarted = false;
+                this.gameEnded = false;
+                this.raceStarted = false;
+                
+                // 게임 설정 - 20cm로 축소
+                this.raceDistance = 100; // 100미터 (실제로는 화면의 20cm 정도)
+                this.pixelsPerMeter = (this.canvas.width - 100) / this.raceDistance; // 화면 너비에서 여백 제외
+                
+                // 지렁이 설정 - 0에서 출발
+                this.worm = {
+                    x: 50,
+                    y: this.canvas.height - 150,
+                    distance: 0, // 0미터에서 출발
+                    animationState: 0, // 0:펼침, 1:움츠림, 2:가장움츠림, 3:움츠림, 4:펼침
+                    animationTimer: 0,
+                    size: 30,
+                    canMove: false,
+                    clickCount: 0, // 클릭 횟수 추적
+                    lastFartTime: 0, // 마지막 방귀 발사 시간
+                    stunned: false, // 지렁이 기절 상태
+                    stunnedTimer: 0 // 지렁이 기절 시간
+                };
+                
+                // 닭 설정
+                this.chicken = {
+                    x: 30,
+                    y: this.canvas.height - 160,
+                    distance: 0,
+                    speed: 1.2 * Math.pow(1.1, this.stage - 1), // 스테이지마다 10% 속도 증가
+                    active: false,
+                    stunned: false,
+                    stunnedTimer: 0
+                };
+                
+                // 방귀 설정
+                this.farts = [];
+                
+                // 타이머 설정 - 5초부터 시작해서 1초까지 감소, 그 후 1초 고정
+                this.chickenDelay = Math.max(1, 6 - this.stage); // 스테이지 1=5초, 2=4초, 3=3초, 4=2초, 5이상=1초
+                this.countdown = this.chickenDelay;
+                this.countdownTimer = null;
+                this.gameTimer = null;
+                this.animationTimer = null;
+                
+                console.log('Game initialized for stage:', this.stage, 'Chicken delay:', this.chickenDelay);
+                
+                this.updateDisplay();
+                this.draw();
+            }
+
+            setupEventListeners() {
+                // 데스크톱 전용 - 마우스 클릭만
+                this.canvas.addEventListener('click', (e) => this.handleClick(e));
+                
+                // 키보드 지원 (스페이스바)
+                document.addEventListener('keydown', (e) => {
+                    if (e.code === 'Space') {
+                        e.preventDefault();
+                        console.log('Space key pressed');
+                        
+                        // 지렁이가 기절 상태면 무시
+                        if (this.worm.stunned) {
+                            console.log('Worm is stunned, ignoring input');
+                            return;
+                        }
+                        
+                        // 펼침 상태(0, 4)에서 스페이스바 누르면 기절
+                        if (this.worm.animationState === 0 || this.worm.animationState === 4) {
+                            this.worm.stunned = true;
+                            this.worm.stunnedTimer = 1000; // 1초간 기절
+                            console.log('Worm stunned for 1 second due to wrong timing');
+                            return;
+                        }
+                        
+                        if (this.worm.canMove) {
+                            this.worm.clickCount++; // 스페이스바도 클릭 횟수 증가
+                            
+                            if (this.worm.animationState === 2) {
+                                this.shootFart();
+                                console.log('Fart shot with space!');
+                            }
+                            console.log('Worm input recorded with space! Click count:', this.worm.clickCount);
+                        } else {
+                            console.log('Cannot move with space - wrong animation state');
+                        }
+                    }
+                });
+                
+                window.addEventListener('resize', () => this.setupCanvas());
+            }
+
+            handleClick(e) {
+                if (!this.raceStarted || this.gameEnded) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                
+                // 지렁이 클릭 영역 체크 (더 관대하게)
+                const wormScreenX = this.worm.x + (this.worm.distance * this.pixelsPerMeter);
+                const distance = Math.sqrt(
+                    Math.pow(clickX - wormScreenX, 2) + 
+                    Math.pow(clickY - this.worm.y, 2)
+                );
+                
+                console.log('Click detected:', {
+                    clickX, clickY, wormScreenX, 
+                    wormY: this.worm.y, 
+                    distance, 
+                    animationState: this.worm.animationState,
+                    canMove: this.worm.canMove
+                });
+                
+                // 지렁이 범위 내 클릭 (더 넓은 범위)
+                if (distance <= 80) { // 클릭 범위 확대
+                    if (this.worm.canMove) { // 움츠림 상태일 때
+                        if (this.worm.animationState === 2) { // 가장 움츠림 상태
+                            this.shootFart();
+                            console.log('Fart shot!');
+                        }
+                        this.moveWorm();
+                        console.log('Worm moved! Distance:', this.worm.distance);
+                    } else {
+                        console.log('Cannot move - wrong animation state');
+                    }
+                } else {
+                    console.log('Click outside worm area');
+                }
+            }
+
+            startCountdown() {
+                this.countdown = this.chickenDelay;
+                document.getElementById('countdown').textContent = this.countdown;
+                
+                // 카운트다운 시작과 동시에 지렁이 애니메이션 시작
+                this.startWormAnimation();
+                
+                this.countdownTimer = setInterval(() => {
+                    this.countdown--;
+                    if (this.countdown > 0) {
+                        document.getElementById('countdown').textContent = this.countdown;
+                    } else {
+                        document.getElementById('countdown').textContent = 'START!!!';
+                        setTimeout(() => {
+                            document.getElementById('countdown').textContent = '';
+                            this.startRace();
+                        }, 1000);
+                        clearInterval(this.countdownTimer);
+                    }
+                }, 1000);
+            }
+
+            startWormAnimation() {
+                // 지렁이 애니메이션 시작 (카운트다운 중에도 작동)
+                this.animationTimer = setInterval(() => {
+                    this.updateWormAnimation();
+                }, 500); // 500ms마다 변경 (더 느리게)
+                
+                // 즉시 첫 번째 애니메이션 실행
+                this.updateWormAnimation();
+            }
+
+            startRace() {
+                this.raceStarted = true;
+                this.chicken.active = true;
+                
+                console.log('Race started!');
+                
+                // 게임 루프 시작
+                this.gameTimer = setInterval(() => {
+                    this.updateGame();
+                }, 100);
+                
+                // 지렁이 애니메이션은 이미 시작되었으므로 속도만 조정
+                if (this.animationTimer) {
+                    clearInterval(this.animationTimer);
+                }
+                this.animationTimer = setInterval(() => {
+                    this.updateWormAnimation();
+                }, 400); // 400ms마다 변경
+            }
+
+            updateWormAnimation() {
+                // 이전 애니메이션 상태 저장
+                const prevState = this.worm.animationState;
+                
+                this.worm.animationState = (this.worm.animationState + 1) % 5;
+                
+                // 움츠림 상태(1,2,3)에서만 움직일 수 있음
+                this.worm.canMove = (this.worm.animationState >= 1 && this.worm.animationState <= 3);
+                
+                // 펼침 상태(0,4)로 돌아갈 때 이동 처리
+                if ((prevState === 3 && this.worm.animationState === 4) || 
+                    (prevState === 4 && this.worm.animationState === 0)) {
+                    this.moveWorm(); // 축적된 클릭으로 이동
+                }
+                
+                console.log('Animation state:', this.worm.animationState, 'Can move:', this.worm.canMove, 'Click count:', this.worm.clickCount);
+                
+                // 화면 다시 그리기
+                this.draw();
+            }
+
+            updateGame() {
+                if (!this.raceStarted || this.gameEnded) return;
+                
+                // 닭 이동
+                if (this.chicken.active && !this.chicken.stunned) {
+                    this.chicken.distance += this.chicken.speed / 10; // 100ms 단위로 이동
+                }
+                
+                // 닭 기절 상태 해제
+                if (this.chicken.stunned) {
+                    this.chicken.stunnedTimer -= 100;
+                    if (this.chicken.stunnedTimer <= 0) {
+                        this.chicken.stunned = false;
+                    }
+                }
+                
+                // 지렁이 기절 상태 해제
+                if (this.worm.stunned) {
+                    this.worm.stunnedTimer -= 100;
+                    if (this.worm.stunnedTimer <= 0) {
+                        this.worm.stunned = false;
+                        console.log('Worm recovered from stun');
+                    }
+                }
+                
+                // 방귀 이동
+                this.updateFarts();
+                
+                // 충돌 체크
+                this.checkCollisions();
+                
+                // 승리 조건 체크
+                if (this.worm.distance >= this.raceDistance) {
+                    this.winGame();
+                }
+                
+                this.updateDisplay();
+                this.draw();
+            }
+
+            moveWorm() {
+                // 실제 이동 처리
+                if (this.worm.clickCount > 0) {
+                    this.worm.distance += this.worm.clickCount; // 클릭 횟수만큼 전진
+                    console.log(`Worm advanced by ${this.worm.clickCount} meters! New distance: ${this.worm.distance}`);
+                    this.worm.clickCount = 0; // 이동 후 클릭 횟수 초기화
+                }
+            }
+
+            shootFart() {
+                const currentTime = Date.now();
+                
+                // 방귀 발사 쿨다운 체크 (1초)
+                if (currentTime - this.worm.lastFartTime < 1000) {
+                    console.log('Fart cooldown active');
+                    return;
+                }
+                
+                const fart = {
+                    x: this.worm.distance,
+                    y: this.worm.y,
+                    speed: 5, // 방귀 속도
+                    life: 100 // 방귀 지속시간
+                };
+                this.farts.push(fart);
+                this.worm.lastFartTime = currentTime;
+                console.log('Fart shot at:', currentTime);
+            }
+
+            updateFarts() {
+                for (let i = this.farts.length - 1; i >= 0; i--) {
+                    const fart = this.farts[i];
+                    fart.x -= fart.speed / 10; // 뒤로 이동
+                    fart.life--;
+                    
+                    // 닭과 충돌 체크
+                    if (Math.abs(fart.x - this.chicken.distance) < 2 && !this.chicken.stunned) {
+                        this.chicken.stunned = true;
+                        this.chicken.stunnedTimer = 500; // 0.5초간 기절
+                        this.farts.splice(i, 1);
+                        console.log('Chicken stunned for 0.5 seconds');
+                        continue;
+                    }
+                    
+                    // 방귀 수명 종료
+                    if (fart.life <= 0) {
+                        this.farts.splice(i, 1);
+                    }
+                }
+            }
+
+            checkCollisions() {
+                // 닭이 지렁이를 잡았는지 체크
+                if (this.chicken.active && !this.chicken.stunned && 
+                    this.chicken.distance >= this.worm.distance - 1) {
+                    this.loseGame();
+                }
+            }
+
+            winGame() {
+                this.gameEnded = true;
+                this.showMessage('WIN!!!', 'win');
+                this.stopGame();
+                
+                setTimeout(() => {
+                    this.showScoreboard(true);
+                }, 2000);
+            }
+
+            loseGame() {
+                this.gameEnded = true;
+                this.showMessage('FAIL!!!', 'fail');
+                this.stopGame();
+                
+                setTimeout(() => {
+                    this.showScoreboard(false);
+                }, 2000);
+            }
+
+            stopGame() {
+                if (this.gameTimer) {
+                    clearInterval(this.gameTimer);
+                }
+                if (this.animationTimer) {
+                    clearInterval(this.animationTimer);
+                }
+                if (this.countdownTimer) {
+                    clearInterval(this.countdownTimer);
+                }
+            }
+
+            showMessage(text, type) {
+                const message = document.getElementById('message');
+                message.textContent = text;
+                message.className = `message ${type}`;
+                message.style.opacity = '1';
+                
+                setTimeout(() => {
+                    message.style.opacity = '0';
+                }, 2000);
+            }
+
+            showScoreboard(won) {
+                const scoreboard = document.getElementById('scoreboard');
+                const scoreTitle = document.getElementById('scoreTitle');
+                const nextButton = document.querySelector('.next-button');
+                
+                if (won) {
+                    scoreTitle.textContent = 'STAGE COMPLETE!';
+                    nextButton.style.display = 'inline-block';
+                    document.getElementById('finalStage').textContent = this.stage;
+                    // 다음 스테이지의 딜레이 시간 계산 (5초부터 1초까지)
+                    const nextStageDelay = Math.max(1, 6 - (this.stage + 1));
+                    document.getElementById('nextDelay').textContent = nextStageDelay;
+                } else {
+                    scoreTitle.textContent = 'GAME OVER!';
+                    nextButton.style.display = 'none';
+                }
+                
+                scoreboard.style.display = 'block';
+                console.log('Scoreboard shown for stage:', this.stage, 'Won:', won);
+            }
+
+            updateDisplay() {
+                document.getElementById('stageDisplay').textContent = this.stage;
+                document.getElementById('distanceDisplay').textContent = Math.floor(this.worm.distance);
+                document.getElementById('clickDisplay').textContent = this.worm.clickCount;
+                document.getElementById('delayDisplay').textContent = this.chickenDelay;
+                
+                // 진행률 업데이트 (0미터에서 시작)
+                const progress = (this.worm.distance / this.raceDistance) * 100;
+                document.getElementById('progressFill').style.width = Math.min(100, Math.max(0, progress)) + '%';
+            }
+
+            draw() {
+                // 배경 그리기
+                this.ctx.fillStyle = 'linear-gradient(to bottom, #87CEEB 0%, #90EE90 50%, #8B4513 100%)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 땅 그리기
+                this.ctx.fillStyle = '#8B4513';
+                this.ctx.fillRect(0, this.canvas.height - 100, this.canvas.width, 100);
+                
+                // 잔디 그리기
+                this.ctx.fillStyle = '#228B22';
+                this.ctx.fillRect(0, this.canvas.height - 110, this.canvas.width, 10);
+                
+                // 결승선 그리기
+                this.drawFinishLine();
+                
+                // 지렁이 그리기
+                this.drawWorm();
+                
+                // 닭 그리기
+                if (this.chicken.active) {
+                    this.drawChicken();
+                }
+                
+                // 방귀 그리기
+                this.drawFarts();
+            }
+
+            drawWorm() {
+                const screenX = this.worm.x + (this.worm.distance * this.pixelsPerMeter);
+                const screenY = this.worm.y;
+                
+                this.ctx.save();
+                this.ctx.translate(screenX, screenY);
+                
+                // 애니메이션 상태에 따른 크기 조절
+                let scaleX = 1;
+                let scaleY = 1;
+                let bodyColor = '#32CD32'; // 기본 초록색
+                
+                switch (this.worm.animationState) {
+                    case 0: case 4: // 펼침
+                        scaleX = 1.3; scaleY = 0.7; 
+                        bodyColor = '#90EE90'; // 연한 초록
+                        break;
+                    case 1: case 3: // 움츠림
+                        scaleX = 1; scaleY = 1; 
+                        bodyColor = '#32CD32'; // 기본 초록
+                        break;
+                    case 2: // 가장 움츠림
+                        scaleX = 0.7; scaleY = 1.3; 
+                        bodyColor = '#228B22'; // 진한 초록
+                        break;
+                }
+                
+                this.ctx.scale(scaleX, scaleY);
+                
+                // 클릭 가능 영역 표시 (노란 원)
+                if (this.worm.canMove) {
+                    this.ctx.strokeStyle = '#FFD700';
+                    this.ctx.lineWidth = 3;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 60, 0, 2 * Math.PI);
+                    this.ctx.stroke();
+                    
+                    // 깜빡이는 효과
+                    this.ctx.strokeStyle = 'rgba(255, 215, 0, 0.5)';
+                    this.ctx.lineWidth = 6;
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, 0, 65, 0, 2 * Math.PI);
+                    this.ctx.stroke();
+                }
+                
+                // 지렁이 몸체 (여러 개의 원으로 구성)
+                const segments = 6;
+                const segmentSize = 10;
+                
+                for (let i = 0; i < segments; i++) {
+                    const x = -25 + (i * 10);
+                    const size = segmentSize - (Math.abs(i - segments/2) * 0.5);
+                    
+                    // 몸체 그림자
+                    this.ctx.fillStyle = '#006400';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x + 1, 1, size, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    
+                    // 몸체
+                    this.ctx.fillStyle = bodyColor;
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, 0, size, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    
+                    // 몸체 하이라이트
+                    this.ctx.fillStyle = '#98FB98';
+                    this.ctx.beginPath();
+                    this.ctx.arc(x - 2, -2, size * 0.3, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                }
+                
+                // 지렁이 머리 (제일 앞쪽)
+                this.ctx.fillStyle = '#006400';
+                this.ctx.beginPath();
+                this.ctx.arc(26, 1, 12, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.fillStyle = bodyColor;
+                this.ctx.beginPath();
+                this.ctx.arc(25, 0, 12, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // 지렁이 눈
+                this.ctx.fillStyle = '#000000';
+                this.ctx.beginPath();
+                this.ctx.arc(30, -4, 2, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.beginPath();
+                this.ctx.arc(30, 4, 2, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // 눈 하이라이트
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.beginPath();
+                this.ctx.arc(31, -3, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                this.ctx.beginPath();
+                this.ctx.arc(31, 5, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // 지렁이 입
+                this.ctx.strokeStyle = '#000000';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.arc(33, 0, 2, 0, Math.PI);
+                this.ctx.stroke();
+                
+                this.ctx.restore();
+            }
+
+            drawChicken() {
+                const screenX = this.chicken.x + (this.chicken.distance * this.pixelsPerMeter);
+                const screenY = this.chicken.y;
+                
+                this.ctx.save();
+                this.ctx.translate(screenX, screenY);
+                
+                // 기절 상태 표시
+                if (this.chicken.stunned) {
+                    this.ctx.rotate(Math.PI); // 뒤집기
+                }
+                
+                // 닭 몸체 (타원형으로 더 닭같게)
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.strokeStyle = '#DDDDDD';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.ellipse(0, 5, 20, 25, 0, 0, 2 * Math.PI);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 닭 머리 (더 작고 둥글게)
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.beginPath();
+                this.ctx.ellipse(18, -8, 12, 12, 0, 0, 2 * Math.PI);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 닭 부리 (더 뾰족하게)
+                this.ctx.fillStyle = '#FFA500';
+                this.ctx.beginPath();
+                this.ctx.moveTo(28, -8);
+                this.ctx.lineTo(35, -6);
+                this.ctx.lineTo(28, -4);
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // 닭 벼슬 (더 자연스럽게)
+                this.ctx.fillStyle = '#FF0000';
+                this.ctx.beginPath();
+                this.ctx.moveTo(12, -18);
+                this.ctx.lineTo(15, -22);
+                this.ctx.lineTo(18, -20);
+                this.ctx.lineTo(21, -24);
+                this.ctx.lineTo(24, -18);
+                this.ctx.lineTo(20, -15);
+                this.ctx.lineTo(16, -16);
+                this.ctx.closePath();
+                this.ctx.fill();
+                
+                // 닭 눈
+                this.ctx.fillStyle = '#000000';
+                this.ctx.beginPath();
+                this.ctx.arc(22, -10, 2, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // 눈 하이라이트
+                this.ctx.fillStyle = '#FFFFFF';
+                this.ctx.beginPath();
+                this.ctx.arc(23, -11, 1, 0, 2 * Math.PI);
+                this.ctx.fill();
+                
+                // 닭 날개 (측면)
+                this.ctx.fillStyle = '#F0F0F0';
+                this.ctx.strokeStyle = '#CCCCCC';
+                this.ctx.beginPath();
+                this.ctx.ellipse(-8, 0, 8, 15, -0.3, 0, 2 * Math.PI);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 닭 꼬리 (뒤쪽 깃털)
+                this.ctx.fillStyle = '#E0E0E0';
+                this.ctx.beginPath();
+                this.ctx.ellipse(-15, 0, 6, 12, 0.5, 0, 2 * Math.PI);
+                this.ctx.fill();
+                this.ctx.stroke();
+                
+                // 닭 다리 (더 자연스럽게)
+                this.ctx.strokeStyle = '#FFA500';
+                this.ctx.lineWidth = 3;
+                this.ctx.beginPath();
+                this.ctx.moveTo(-8, 28);
+                this.ctx.lineTo(-8, 38);
+                this.ctx.moveTo(-3, 25);
+                this.ctx.lineTo(-3, 35);
+                this.ctx.moveTo(8, 28);
+                this.ctx.lineTo(8, 38);
+                this.ctx.stroke();
+                
+                // 발가락 (간단하게)
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.moveTo(-10, 38);
+                this.ctx.lineTo(-6, 38);
+                this.ctx.moveTo(-6, 38);
+                this.ctx.lineTo(-4, 38);
+                this.ctx.moveTo(6, 38);
+                this.ctx.lineTo(10, 38);
+                this.ctx.stroke();
+                
+                this.ctx.restore();
+            }
+
+            drawFarts() {
+                this.farts.forEach(fart => {
+                    const screenX = this.worm.x + (fart.x * this.pixelsPerMeter);
+                    
+                    this.ctx.fillStyle = `rgba(255, 255, 0, ${fart.life / 100})`;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(screenX, fart.y, 15, 10, 0, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                    
+                    // 방귀 효과
+                    this.ctx.fillStyle = `rgba(255, 192, 203, ${fart.life / 100})`;
+                    this.ctx.beginPath();
+                    this.ctx.ellipse(screenX - 10, fart.y, 10, 8, 0, 0, 2 * Math.PI);
+                    this.ctx.fill();
+                });
+            }
+
+            drawFinishLine() {
+                const finishX = this.worm.x + (this.raceDistance * this.pixelsPerMeter);
+                
+                this.ctx.strokeStyle = '#000000';
+                this.ctx.lineWidth = 4;
+                this.ctx.setLineDash([20, 20]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(finishX, this.canvas.height - 200);
+                this.ctx.lineTo(finishX, this.canvas.height - 50);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                // 결승 텍스트
+                this.ctx.fillStyle = '#000000';
+                this.ctx.font = 'bold 16px Arial';
+                this.ctx.fillText('FINISH', finishX - 25, this.canvas.height - 210);
+                
+                // 시작선 그리기 (0미터 지점)
+                const startX = this.worm.x;
+                this.ctx.strokeStyle = '#00FF00';
+                this.ctx.lineWidth = 2;
+                this.ctx.setLineDash([10, 10]);
+                this.ctx.beginPath();
+                this.ctx.moveTo(startX, this.canvas.height - 200);
+                this.ctx.lineTo(startX, this.canvas.height - 50);
+                this.ctx.stroke();
+                this.ctx.setLineDash([]);
+                
+                // 시작선 텍스트
+                this.ctx.fillStyle = '#00AA00';
+                this.ctx.font = 'bold 14px Arial';
+                this.ctx.fillText('START', startX - 20, this.canvas.height - 210);
+            }
+
+            nextStage() {
+                document.getElementById('scoreboard').style.display = 'none';
+                this.stage++; // 스테이지 증가
+                console.log('Moving to stage:', this.stage);
+                
+                // 새 스테이지 초기화
+                this.gameStarted = false;
+                this.gameEnded = false;
+                this.raceStarted = false;
+                
+                // 지렁이 초기화
+                this.worm.distance = 0;
+                this.worm.animationState = 0;
+                this.worm.canMove = false;
+                this.worm.clickCount = 0;
+                this.worm.lastFartTime = 0;
+                this.worm.stunned = false;
+                this.worm.stunnedTimer = 0;
+                
+                // 닭 초기화 (속도는 새로 계산)
+                this.chicken.distance = 0;
+                this.chicken.speed = 1.2 * Math.pow(1.1, this.stage - 1); // 스테이지마다 10% 증가
+                this.chicken.active = false;
+                this.chicken.stunned = false;
+                this.chicken.stunnedTimer = 0;
+                
+                // 방귀 초기화
+                this.farts = [];
+                
+                // 타이머 설정 업데이트 (5초부터 1초까지)
+                this.chickenDelay = Math.max(1, 6 - this.stage);
+                this.countdown = this.chickenDelay;
+                
+                // 타이머들 정리
+                this.stopGame();
+                
+                console.log(`Stage ${this.stage}: Chicken speed=${this.chicken.speed.toFixed(2)}, Delay=${this.chickenDelay}s`);
+                
+                this.updateDisplay();
+                this.draw();
+                this.startCountdown();
+            }
+
+            exitGame() {
+                const scoreboard = document.getElementById('scoreboard');
+                const startScreen = document.getElementById('startScreen');
+                
+                scoreboard.style.display = 'none';
+                startScreen.style.display = 'flex';
+                this.stopGame();
+                
+                // 게임을 완전히 초기화 (스테이지 1로 리셋)
+                this.stage = 1;
+                this.initializeGame();
+                console.log('Game reset to stage 1');
+            }
+
+            start() {
+                const startScreen = document.getElementById('startScreen');
+                startScreen.style.display = 'none';
+                this.gameStarted = true;
+                this.startCountdown();
+            }
+        }
+
+        // 전역 변수
+        let game;
+
+        // 전역 함수들
+        function startGame() {
+            game = new WormRacingGame();
+            game.start();
+        }
+
+        function nextStage() {
+            if (game) {
+                game.nextStage();
+            }
+        }
+
+        function exitGame() {
+            if (game) {
+                game.exitGame();
+            }
+        }
+
+        // 페이지 로드 시 시작 화면 표시
+        window.addEventListener('load', () => {
+            const startScreen = document.getElementById('startScreen');
+            startScreen.style.display = 'flex';
+            console.log('Start screen displayed');
+        });
+    </script>
 </body>
 </html>
